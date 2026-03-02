@@ -96,7 +96,8 @@ public class StatsClient {
             List<ViewStatsDto> stats = restClient.get()
                     .uri(uri)
                     .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
+                    .body(new ParameterizedTypeReference<>() {
+                    });
 
             log.info("Received {} stats records", stats != null ? stats.size() : 0);
             return stats;
