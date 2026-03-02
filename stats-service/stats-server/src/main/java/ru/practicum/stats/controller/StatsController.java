@@ -1,0 +1,50 @@
+package ru.practicum.stats.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import ru.practicum.dto.EndpointHitDto;
+import ru.practicum.dto.ViewStatsDto;
+import ru.practicum.stats.service.StatsService;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Контроллер для работы со статистикой
+ */
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+public class StatsController {
+
+    private final StatsService statsService;
+
+    /**
+     * Сохранение информации о том, что к эндпоинту был запрос
+     */
+    @PostMapping("/hit")
+    @ResponseStatus(HttpStatus.CREATED)
+    public EndpointHitDto saveHit(@Valid @RequestBody EndpointHitDto endpointHitDto) {
+        log.info("POST /hit with body: {}", endpointHitDto);
+        return statsService.saveHit(endpointHitDto);
+    }
+
+    /**
+     * Получение статистики по посещениям
+     */
+    @GetMapping("/stats")
+    public List<ViewStatsDto> getStats(
+            @RequestParam LocalDateTime start,
+            @RequestParam LocalDateTime end,
+            @RequestParam(required = false) List<String> uris,
+            @RequestParam(defaultValue = "false") Boolean unique) {
+
+        log.info("GET /stats with params: start={}, end={}, uris={}, unique={}",
+                start, end, uris, unique);
+
+        return statsService.getStats(start, end, uris, unique);
+    }
+}
