@@ -22,6 +22,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
+	<modules>
+		<module>stats-service/stats-dto</module>
+		<module>stats-service/stats-server</module>
+		<module>stats-service/stats-client</module>
+		<module>ewm-service</module>
+	</modules>
+
 	<build>
 		<pluginManagement>
 			<plugins>
