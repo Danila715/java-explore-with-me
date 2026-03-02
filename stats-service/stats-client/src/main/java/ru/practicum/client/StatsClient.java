@@ -13,21 +13,25 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * HTTP-клиент для взаимодействия с сервисом статистики
+ * Формат дат настраивается через application.properties: app.date-time.format
  */
 @Slf4j
 @Service
 public class StatsClient {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final DateTimeFormatter formatter;
     private final RestClient restClient;
 
-    public StatsClient(@Value("${stats-server.url}") String serverUrl) {
+    public StatsClient(@Value("${stats-server.url}") String serverUrl,
+                       @Value("${app.date-time.format}") String dateTimeFormat) {
+        this.formatter = DateTimeFormatter.ofPattern(dateTimeFormat);
         this.restClient = RestClient.builder()
                 .baseUrl(serverUrl)
                 .build();
@@ -75,9 +79,9 @@ public class StatsClient {
     public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end,
                                        List<String> uris, Boolean unique) {
         try {
-            // Форматирование и кодирование дат
-            String encodedStart = URLEncoder.encode(start.format(FORMATTER), StandardCharsets.UTF_8);
-            String encodedEnd = URLEncoder.encode(end.format(FORMATTER), StandardCharsets.UTF_8);
+            // Форматирование и кодирование дат с использованием настроенного форматтера
+            String encodedStart = URLEncoder.encode(start.format(formatter), StandardCharsets.UTF_8);
+            String encodedEnd = URLEncoder.encode(end.format(formatter), StandardCharsets.UTF_8);
 
             // Построение URL
             StringBuilder uriBuilder = new StringBuilder("/stats")
@@ -96,11 +100,10 @@ public class StatsClient {
             List<ViewStatsDto> stats = restClient.get()
                     .uri(uri)
                     .retrieve()
-                    .body(new ParameterizedTypeReference<>() {
-                    });
+                    .body(new ParameterizedTypeReference<>() {});
 
             log.info("Received {} stats records", stats != null ? stats.size() : 0);
-            return stats;
+            return stats != null ? stats : Collections.emptyList();
         } catch (Exception e) {
             log.error("Error while getting stats: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get stats", e);
@@ -126,8 +129,8 @@ public class StatsClient {
     public Map<String, Long> getViewsForUris(List<String> uris, LocalDateTime start, LocalDateTime end) {
         List<ViewStatsDto> stats = getStats(start, end, uris, false);
 
-        if (stats == null) {
-            return Map.of();
+        if (stats == null || stats.isEmpty()) {
+            return Collections.emptyMap();
         }
 
         return stats.stream()
