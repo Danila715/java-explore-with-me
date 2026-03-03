@@ -26,6 +26,7 @@ import ru.practicum.ewm.user.service.UserService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -155,26 +156,26 @@ public class EventService {
     }
 
     private void applyUserUpdate(Event event, UpdateEventUserRequest dto) {
-        if (dto.getAnnotation() != null) event.setAnnotation(dto.getAnnotation());
-        if (dto.getCategory() != null) event.setCategory(categoryService.getCategoryById(dto.getCategory()));
-        if (dto.getDescription() != null) event.setDescription(dto.getDescription());
-        if (dto.getEventDate() != null) event.setEventDate(dto.getEventDate());
-        if (dto.getLocation() != null) event.setLocation(dto.getLocation());
-        if (dto.getPaid() != null) event.setPaid(dto.getPaid());
-        if (dto.getParticipantLimit() != null) event.setParticipantLimit(dto.getParticipantLimit());
-        if (dto.getRequestModeration() != null) event.setRequestModeration(dto.getRequestModeration());
-        if (dto.getTitle() != null) event.setTitle(dto.getTitle());
+        Optional.ofNullable(dto.getAnnotation()).ifPresent(event::setAnnotation);
+        Optional.ofNullable(dto.getCategory()).ifPresent(id -> event.setCategory(categoryService.getCategoryById(id)));
+        Optional.ofNullable(dto.getDescription()).ifPresent(event::setDescription);
+        Optional.ofNullable(dto.getEventDate()).ifPresent(event::setEventDate);
+        Optional.ofNullable(dto.getLocation()).ifPresent(event::setLocation);
+        Optional.ofNullable(dto.getPaid()).ifPresent(event::setPaid);
+        Optional.ofNullable(dto.getParticipantLimit()).ifPresent(event::setParticipantLimit);
+        Optional.ofNullable(dto.getRequestModeration()).ifPresent(event::setRequestModeration);
+        Optional.ofNullable(dto.getTitle()).ifPresent(event::setTitle);
     }
 
     private void applyAdminUpdate(Event event, UpdateEventAdminRequest dto) {
-        if (dto.getAnnotation() != null) event.setAnnotation(dto.getAnnotation());
-        if (dto.getCategory() != null) event.setCategory(categoryService.getCategoryById(dto.getCategory()));
-        if (dto.getDescription() != null) event.setDescription(dto.getDescription());
-        if (dto.getEventDate() != null) event.setEventDate(dto.getEventDate());
-        if (dto.getLocation() != null) event.setLocation(dto.getLocation());
-        if (dto.getPaid() != null) event.setPaid(dto.getPaid());
-        if (dto.getParticipantLimit() != null) event.setParticipantLimit(dto.getParticipantLimit());
-        if (dto.getRequestModeration() != null) event.setRequestModeration(dto.getRequestModeration());
-        if (dto.getTitle() != null) event.setTitle(dto.getTitle());
+        Optional.ofNullable(dto.getAnnotation()).ifPresent(event::setAnnotation);
+        Optional.ofNullable(dto.getCategory()).ifPresent(id -> event.setCategory(categoryService.getCategoryById(id)));
+        Optional.ofNullable(dto.getDescription()).ifPresent(event::setDescription);
+        Optional.ofNullable(dto.getEventDate()).ifPresent(event::setEventDate);
+        Optional.ofNullable(dto.getLocation()).ifPresent(event::setLocation);
+        Optional.ofNullable(dto.getPaid()).ifPresent(event::setPaid);
+        Optional.ofNullable(dto.getParticipantLimit()).ifPresent(event::setParticipantLimit);
+        Optional.ofNullable(dto.getRequestModeration()).ifPresent(event::setRequestModeration);
+        Optional.ofNullable(dto.getTitle()).ifPresent(event::setTitle);
     }
 }

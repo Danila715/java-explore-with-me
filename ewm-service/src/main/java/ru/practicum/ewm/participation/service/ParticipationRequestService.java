@@ -117,31 +117,37 @@ public class ParticipationRequestService {
             long alreadyConfirmed = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
             int limit = event.getParticipantLimit();
 
+            List<ParticipationRequest> toConfirm = new ArrayList<>();
+            List<ParticipationRequest> toReject = new ArrayList<>();
+
             for (ParticipationRequest req : requests) {
                 if (limit > 0 && alreadyConfirmed >= limit) {
                     req.setStatus(RequestStatus.REJECTED);
-                    rejected.add(ParticipationRequestMapper.toDto(requestRepository.save(req)));
+                    toReject.add(req);
                 } else {
                     req.setStatus(RequestStatus.CONFIRMED);
-                    confirmed.add(ParticipationRequestMapper.toDto(requestRepository.save(req)));
+                    toConfirm.add(req);
                     alreadyConfirmed++;
                 }
             }
+
+            requestRepository.saveAll(toConfirm);
+            requestRepository.saveAll(toReject);
+
+            toConfirm.stream().map(ParticipationRequestMapper::toDto).forEach(confirmed::add);
+            toReject.stream().map(ParticipationRequestMapper::toDto).forEach(rejected::add);
 
             if (limit > 0 && alreadyConfirmed >= limit) {
                 List<ParticipationRequest> pending = requestRepository.findByEventId(eventId).stream()
                         .filter(r -> r.getStatus() == RequestStatus.PENDING)
                         .collect(Collectors.toList());
-                for (ParticipationRequest r : pending) {
-                    r.setStatus(RequestStatus.REJECTED);
-                    requestRepository.save(r);
-                }
+                pending.forEach(r -> r.setStatus(RequestStatus.REJECTED));
+                requestRepository.saveAll(pending);
             }
         } else {
-            for (ParticipationRequest req : requests) {
-                req.setStatus(RequestStatus.REJECTED);
-                rejected.add(ParticipationRequestMapper.toDto(requestRepository.save(req)));
-            }
+            requests.forEach(req -> req.setStatus(RequestStatus.REJECTED));
+            requestRepository.saveAll(requests);
+            requests.stream().map(ParticipationRequestMapper::toDto).forEach(rejected::add);
         }
 
         return EventRequestStatusUpdateResult.builder()
