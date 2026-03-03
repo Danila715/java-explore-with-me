@@ -6,11 +6,10 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import ru.practicum.dto.EndpointHitDto;
 import ru.practicum.dto.ViewStatsDto;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -79,28 +78,23 @@ public class StatsClient {
     public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end,
                                        List<String> uris, Boolean unique) {
         try {
-            // Форматирование и кодирование дат с использованием настроенного форматтера
-            String encodedStart = URLEncoder.encode(start.format(formatter), StandardCharsets.UTF_8);
-            String encodedEnd = URLEncoder.encode(end.format(formatter), StandardCharsets.UTF_8);
-
-            // Построение URL
-            StringBuilder uriBuilder = new StringBuilder("/stats")
-                    .append("?start=").append(encodedStart)
-                    .append("&end=").append(encodedEnd)
-                    .append("&unique=").append(unique != null ? unique : false);
+            UriComponentsBuilder builder = UriComponentsBuilder.fromPath("/stats")
+                    .queryParam("start", start.format(formatter))
+                    .queryParam("end", end.format(formatter))
+                    .queryParam("unique", unique != null ? unique : false);
 
             if (uris != null && !uris.isEmpty()) {
-                String urisParam = String.join(",", uris);
-                uriBuilder.append("&uris=").append(URLEncoder.encode(urisParam, StandardCharsets.UTF_8));
+                builder.queryParam("uris", String.join(",", uris));
             }
 
-            String uri = uriBuilder.toString();
+            String uri = builder.build().toUriString();
             log.info("Getting stats from: {}", uri);
 
             List<ViewStatsDto> stats = restClient.get()
                     .uri(uri)
                     .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
+                    .body(new ParameterizedTypeReference<>() {
+                    });
 
             log.info("Received {} stats records", stats != null ? stats.size() : 0);
             return stats != null ? stats : Collections.emptyList();
@@ -114,7 +108,7 @@ public class StatsClient {
      * Получение статистики для одного URI
      */
     public Long getViewsForUri(String uri, LocalDateTime start, LocalDateTime end) {
-        List<ViewStatsDto> stats = getStats(start, end, List.of(uri), false);
+        List<ViewStatsDto> stats = getStats(start, end, List.of(uri), true);
 
         if (stats != null && !stats.isEmpty()) {
             return stats.get(0).getHits();
@@ -127,7 +121,7 @@ public class StatsClient {
      * Получение статистики для нескольких URI в виде Map
      */
     public Map<String, Long> getViewsForUris(List<String> uris, LocalDateTime start, LocalDateTime end) {
-        List<ViewStatsDto> stats = getStats(start, end, uris, false);
+        List<ViewStatsDto> stats = getStats(start, end, uris, true);
 
         if (stats == null || stats.isEmpty()) {
             return Collections.emptyMap();

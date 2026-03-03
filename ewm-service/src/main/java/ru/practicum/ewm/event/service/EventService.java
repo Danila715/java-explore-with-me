@@ -17,6 +17,7 @@ import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.event.repository.EventSpecifications;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
+import ru.practicum.ewm.exception.ValidationException;
 import ru.practicum.ewm.participation.model.ParticipationRequest;
 import ru.practicum.ewm.participation.service.ParticipationRequestService;
 import ru.practicum.ewm.user.model.User;
@@ -41,7 +42,7 @@ public class EventService {
     @Transactional
     public EventFullDto createEvent(Long userId, NewEventDto dto) {
         if (dto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ConflictException("Дата события должна быть не ранее чем через 2 часа от текущего момента");
+            throw new ValidationException("Дата события должна быть не ранее чем через 2 часа от текущего момента");
         }
         User user = userService.getUserById(userId);
         Category category = categoryService.getCategoryById(dto.getCategory());
@@ -73,7 +74,7 @@ public class EventService {
             throw new ConflictException("Изменять можно только отменённые или ожидающие модерации события");
         }
         if (dto.getEventDate() != null && dto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ConflictException("Дата события должна быть не ранее чем через 2 часа от текущего момента");
+            throw new ValidationException("Дата события должна быть не ранее чем через 2 часа от текущего момента");
         }
 
         applyUserUpdate(event, dto);
@@ -112,7 +113,7 @@ public class EventService {
                 .orElseThrow(() -> new NotFoundException("Событие с id=" + eventId + " не найдено"));
 
         if (dto.getEventDate() != null && dto.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {
-            throw new ConflictException("Дата события должна быть не ранее чем через 1 час от текущего момента");
+            throw new ValidationException("Дата события должна быть не ранее чем через 1 час от текущего момента");
         }
 
         applyAdminUpdate(event, dto);

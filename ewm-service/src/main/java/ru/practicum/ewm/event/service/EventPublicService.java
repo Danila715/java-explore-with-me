@@ -16,6 +16,7 @@ import ru.practicum.ewm.event.model.EventState;
 import ru.practicum.ewm.event.repository.EventRepository;
 import ru.practicum.ewm.event.repository.EventSpecifications;
 import ru.practicum.ewm.exception.NotFoundException;
+import ru.practicum.ewm.exception.ValidationException;
 import ru.practicum.ewm.participation.model.ParticipationRequest;
 import ru.practicum.ewm.participation.service.ParticipationRequestService;
 
@@ -42,6 +43,10 @@ public class EventPublicService {
                                                int from, int size, String clientIp) {
         if (rangeStart == null) {
             rangeStart = LocalDateTime.now();
+        }
+
+        if (rangeEnd != null && rangeEnd.isBefore(rangeStart)) {
+            throw new ValidationException("rangeEnd не может быть раньше rangeStart");
         }
 
         Specification<Event> spec = EventSpecifications.publicFilter(
@@ -79,9 +84,10 @@ public class EventPublicService {
                 .orElseThrow(() -> new NotFoundException("Событие с id=" + eventId + " не найдено"));
 
         event.setConfirmedRequests(requestService.getConfirmedRequestsCount(eventId));
-        enrichEventWithStats(event);
 
         saveHit("/events/" + eventId, clientIp);
+
+        enrichEventWithStats(event);
 
         return EventMapper.toEventFullDto(event);
     }
