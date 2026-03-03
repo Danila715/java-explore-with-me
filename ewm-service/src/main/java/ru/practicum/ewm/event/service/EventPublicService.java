@@ -108,7 +108,8 @@ public class EventPublicService {
                 .collect(Collectors.toList());
         try {
             Map<String, Long> stats = statsClient.getViewsForUris(
-                    uris, LocalDateTime.of(2000, 1, 1, 0, 0), LocalDateTime.now());
+                    uris, LocalDateTime.of(2000, 1, 1, 0, 0), LocalDateTime.now(),
+                    false);
             events.forEach(e -> e.setViews(stats.getOrDefault("/events/" + e.getId(), 0L)));
         } catch (Throwable t) {
             log.warn("Сервис статистики недоступен, устанавливаем views=0 для всех событий: {}", t.getMessage());
@@ -120,10 +121,10 @@ public class EventPublicService {
         try {
             Long views = statsClient.getViewsForUri(
                     "/events/" + event.getId(),
-                    LocalDateTime.of(2000, 1, 1, 0, 0), LocalDateTime.now());
+                    LocalDateTime.of(2000, 1, 1, 0, 0), LocalDateTime.now(),
+                    true); // уникальные
             event.setViews(views);
         } catch (Throwable t) {
-            log.warn("Сервис статистики недоступен для события {}: {}", event.getId(), t.getMessage());
             event.setViews(0L);
         }
     }

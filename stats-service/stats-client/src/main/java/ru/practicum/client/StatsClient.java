@@ -107,8 +107,8 @@ public class StatsClient {
     /**
      * Получение статистики для одного URI
      */
-    public Long getViewsForUri(String uri, LocalDateTime start, LocalDateTime end) {
-        List<ViewStatsDto> stats = getStats(start, end, List.of(uri), true);
+    public Long getViewsForUri(String uri, LocalDateTime start, LocalDateTime end, boolean unique) {
+        List<ViewStatsDto> stats = getStats(start, end, List.of(uri), unique);
 
         if (stats != null && !stats.isEmpty()) {
             return stats.get(0).getHits();
@@ -120,8 +120,8 @@ public class StatsClient {
     /**
      * Получение статистики для нескольких URI в виде Map
      */
-    public Map<String, Long> getViewsForUris(List<String> uris, LocalDateTime start, LocalDateTime end) {
-        List<ViewStatsDto> stats = getStats(start, end, uris, true);
+    public Map<String, Long> getViewsForUris(List<String> uris, LocalDateTime start, LocalDateTime end, boolean unique) {
+        List<ViewStatsDto> stats = getStats(start, end, uris, unique);
 
         if (stats == null || stats.isEmpty()) {
             return Collections.emptyMap();
