@@ -1,0 +1,49 @@
+CREATE TABLE IF NOT EXISTS categories (
+    id   BIGSERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id    BIGSERIAL PRIMARY KEY,
+    name  VARCHAR(250) NOT NULL,
+    email VARCHAR(254) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id                 BIGSERIAL PRIMARY KEY,
+    annotation         VARCHAR(2000) NOT NULL,
+    category_id        BIGINT        NOT NULL REFERENCES categories (id),
+    created_on         TIMESTAMP     NOT NULL,
+    description        VARCHAR(7000) NOT NULL,
+    event_date         TIMESTAMP     NOT NULL,
+    initiator_id       BIGINT        NOT NULL REFERENCES users (id),
+    location_lat       FLOAT,
+    location_lon       FLOAT,
+    paid               BOOLEAN       NOT NULL DEFAULT FALSE,
+    participant_limit  INT           NOT NULL DEFAULT 0,
+    published_on       TIMESTAMP,
+    request_moderation BOOLEAN       NOT NULL DEFAULT TRUE,
+    state              VARCHAR(20)   NOT NULL,
+    title              VARCHAR(120)  NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS participation_requests (
+    id           BIGSERIAL PRIMARY KEY,
+    event_id     BIGINT      NOT NULL REFERENCES events (id),
+    requester_id BIGINT      NOT NULL REFERENCES users (id),
+    created      TIMESTAMP   NOT NULL,
+    status       VARCHAR(20) NOT NULL,
+    CONSTRAINT uq_request UNIQUE (event_id, requester_id)
+);
+
+CREATE TABLE IF NOT EXISTS compilations (
+    id     BIGSERIAL PRIMARY KEY,
+    pinned BOOLEAN      NOT NULL DEFAULT FALSE,
+    title  VARCHAR(50)  NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS compilation_events (
+    compilation_id BIGINT NOT NULL REFERENCES compilations (id) ON DELETE CASCADE,
+    event_id       BIGINT NOT NULL REFERENCES events (id),
+    CONSTRAINT pk_compilation_events PRIMARY KEY (compilation_id, event_id)
+);
