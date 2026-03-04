@@ -1,0 +1,309 @@
+{
+  "info": {
+    "name": "EWM — Comments",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://localhost:8080" },
+    { "key": "commentId",  "value": "" },
+    { "key": "commentId2", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Подготовка — создать пользователя 1",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('201 Created', () => pm.response.to.have.status(201));"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/users",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\":\"Alice Comment\",\"email\":\"alice.comment@test.com\"}" }
+      }
+    },
+    {
+      "name": "Подготовка — создать пользователя 2 (для проверки чужих операций)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('201 Created', () => pm.response.to.have.status(201));"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/users",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\":\"Bob Comment\",\"email\":\"bob.comment@test.com\"}" }
+      }
+    },
+    {
+      "name": "Подготовка — создать категорию",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('201 Created', () => pm.response.to.have.status(201));"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/admin/categories",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\":\"CommentTestCat\"}" }
+      }
+    },
+    {
+      "name": "Подготовка — создать событие",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('201 Created', () => pm.response.to.have.status(201));"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/users/1/events",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"title\":\"Comment Test Event\",\"annotation\":\"Annotation for comment test event\",\"description\":\"Description for comment test event\",\"category\":1,\"eventDate\":\"2097-06-01 12:00:00\",\"location\":{\"lat\":55.75,\"lon\":37.62},\"paid\":false,\"participantLimit\":0,\"requestModeration\":false}" }
+      }
+    },
+    {
+      "name": "Подготовка — опубликовать событие",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200 OK и статус PUBLISHED', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json().state).to.equal('PUBLISHED');",
+        "});"
+      ]}}],
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/admin/events/1",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"stateAction\":\"PUBLISH_EVENT\"}" }
+      }
+    },
+    {
+      "name": "Добавление комментария",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const j = pm.response.json();",
+        "if (j && j.id) pm.collectionVariables.set('commentId', j.id);",
+        "pm.test('Ответ 201 и json', () => {",
+        "  pm.response.to.have.status(201);",
+        "  pm.response.to.be.json;",
+        "});",
+        "pm.test('Комментарий содержит обязательные поля', () => {",
+        "  pm.expect(j).to.include.all.keys('id','text','authorName','eventId','createdOn','edited');",
+        "});",
+        "pm.test('Текст совпадает с переданным', () => {",
+        "  pm.expect(j.text).to.equal('Отличное событие!');",
+        "});",
+        "pm.test('edited = false при создании', () => {",
+        "  pm.expect(j.edited).to.be.false;",
+        "});",
+        "pm.test('editedOn = null при создании', () => {",
+        "  pm.expect(j.editedOn).to.be.null;",
+        "});"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/users/1/comments/events/1",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"text\":\"Отличное событие!\"}" }
+      }
+    },
+    {
+      "name": "Добавление пустого комментария — ошибка 400",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 400 при пустом тексте', () => pm.response.to.have.status(400));"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/users/1/comments/events/1",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"text\":\"\"}" }
+      }
+    },
+    {
+      "name": "Добавление комментария к несуществующему событию — ошибка 404",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 404', () => pm.response.to.have.status(404));"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/users/1/comments/events/999999",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"text\":\"Событие не существует\"}" }
+      }
+    },
+    {
+      "name": "Публичное получение комментария по id",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 200 и json', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.response.to.be.json;",
+        "});",
+        "pm.test('id совпадает', () => {",
+        "  pm.expect(pm.response.json().id).to.equal(pm.collectionVariables.get('commentId') * 1);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/comments/{{commentId}}"
+      }
+    },
+    {
+      "name": "Публичное получение несуществующего комментария — 404",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 404', () => pm.response.to.have.status(404));"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/comments/999999"
+      }
+    },
+    {
+      "name": "Публичное получение комментариев события",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 200 и массив', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json()).to.be.an('array');",
+        "});",
+        "pm.test('Список не пуст', () => {",
+        "  pm.expect(pm.response.json().length).to.be.at.least(1);",
+        "});",
+        "pm.test('Элементы содержат обязательные поля', () => {",
+        "  const c = pm.response.json()[0];",
+        "  pm.expect(c).to.include.all.keys('id','text','authorName','eventId','createdOn','edited');",
+        "});"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/comments/events/1?from=0&size=10"
+      }
+    },
+    {
+      "name": "Редактирование комментария автором",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 200 и json', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.response.to.be.json;",
+        "});",
+        "pm.test('Текст обновился', () => {",
+        "  pm.expect(pm.response.json().text).to.equal('Обновлённый текст комментария');",
+        "});",
+        "pm.test('edited = true после редактирования', () => {",
+        "  pm.expect(pm.response.json().edited).to.be.true;",
+        "});",
+        "pm.test('editedOn заполнен', () => {",
+        "  pm.expect(pm.response.json().editedOn).to.not.be.null;",
+        "});"
+      ]}}],
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/users/1/comments/{{commentId}}",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"text\":\"Обновлённый текст комментария\"}" }
+      }
+    },
+    {
+      "name": "Редактирование чужого комментария — ошибка 409",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 409 при попытке редактировать чужой комментарий', () => {",
+        "  pm.response.to.have.status(409);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/users/2/comments/{{commentId}}",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"text\":\"Попытка взлома\"}" }
+      }
+    },
+    {
+      "name": "Получение своих комментариев пользователем",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 200 и массив', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json()).to.be.an('array');",
+        "});",
+        "pm.test('Список содержит комментарий пользователя', () => {",
+        "  pm.expect(pm.response.json().length).to.be.at.least(1);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users/1/comments?from=0&size=10"
+      }
+    },
+    {
+      "name": "Получение комментариев события администратором",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 200 и массив', () => {",
+        "  pm.response.to.have.status(200);",
+        "  pm.expect(pm.response.json()).to.be.an('array');",
+        "});",
+        "pm.test('Администратор видит комментарии', () => {",
+        "  pm.expect(pm.response.json().length).to.be.at.least(1);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/comments/events/1?from=0&size=10"
+      }
+    },
+    {
+      "name": "Удаление чужого комментария пользователем — ошибка 409",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 409', () => pm.response.to.have.status(409));"
+      ]}}],
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/users/2/comments/{{commentId}}"
+      }
+    },
+    {
+      "name": "Подготовка — создать второй комментарий для удаления пользователем",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const j = pm.response.json();",
+        "if (j && j.id) pm.collectionVariables.set('commentId2', j.id);",
+        "pm.test('201 Created', () => pm.response.to.have.status(201));"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/users/1/comments/events/1",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"text\":\"Комментарий для удаления\"}" }
+      }
+    },
+    {
+      "name": "Удаление комментария пользователем (своего)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 204', () => pm.response.to.have.status(204));"
+      ]}}],
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/users/1/comments/{{commentId2}}"
+      }
+    },
+    {
+      "name": "Проверка — удалённый комментарий возвращает 404",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 404 после удаления', () => pm.response.to.have.status(404));"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/comments/{{commentId2}}"
+      }
+    },
+    {
+      "name": "Удаление комментария администратором",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 204', () => pm.response.to.have.status(204));"
+      ]}}],
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/admin/comments/{{commentId}}"
+      }
+    },
+    {
+      "name": "Проверка — после удаления администратором комментарий недоступен",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Ответ 404 после удаления администратором', () => pm.response.to.have.status(404));"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/comments/{{commentId}}"
+      }
+    }
+  ]
+}
