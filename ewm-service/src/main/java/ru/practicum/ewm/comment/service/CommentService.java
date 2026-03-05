@@ -22,7 +22,6 @@ import ru.practicum.ewm.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,12 +33,28 @@ public class CommentService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
 
+    // ───────────────────── ПУБЛИЧНЫЕ ─────────────────────
+
+    public List<CommentDto> getEventComments(Long eventId, int from, int size) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new NotFoundException("Событие с id=" + eventId + " не найдено");
+        }
+        PageRequest pageable = PageRequest.of(from / size, size, Sort.by("createdOn").descending());
+        return commentRepository.findByEventId(eventId, pageable)
+                .map(CommentMapper::toDto)
+                .getContent();
+    }
+
+    public CommentDto getComment(Long commentId) {
+        return CommentMapper.toDto(getCommentOrThrow(commentId));
+    }
+
     // ───────────────────── ПРИВАТНЫЕ (пользовательские) ─────────────────────
 
     @Transactional
     public CommentDto addComment(Long userId, Long eventId, NewCommentDto dto) {
-        User author = getUserById(userId);
-        Event event = getPublishedEvent(eventId);
+        User author = getUserOrThrow(userId);
+        Event event = getPublishedEventOrThrow(eventId);
 
         Comment comment = CommentMapper.toComment(dto.getText(), author, event);
         log.info("Пользователь {} добавил комментарий к событию {}", userId, eventId);
@@ -48,8 +63,10 @@ public class CommentService {
 
     @Transactional
     public CommentDto updateComment(Long userId, Long commentId, UpdateCommentDto dto) {
-        getUserById(userId); // проверяем что пользователь существует
-        Comment comment = getCommentById(commentId);
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException("Пользователь с id=" + userId + " не найден");
+        }
+        Comment comment = getCommentOrThrow(commentId);
 
         if (!comment.getAuthor().getId().equals(userId)) {
             throw new ConflictException("Редактировать комментарий может только его автор");
@@ -65,8 +82,10 @@ public class CommentService {
 
     @Transactional
     public void deleteCommentByUser(Long userId, Long commentId) {
-        getUserById(userId);
-        Comment comment = getCommentById(commentId);
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException("Пользователь с id=" + userId + " не найден");
+        }
+        Comment comment = getCommentOrThrow(commentId);
 
         if (!comment.getAuthor().getId().equals(userId)) {
             throw new ConflictException("Удалить комментарий может только его автор");
@@ -77,58 +96,49 @@ public class CommentService {
     }
 
     public List<CommentDto> getUserComments(Long userId, int from, int size) {
-        getUserById(userId);
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException("Пользователь с id=" + userId + " не найден");
+        }
         PageRequest pageable = PageRequest.of(from / size, size, Sort.by("createdOn").descending());
-        return commentRepository.findByAuthorId(userId, pageable).stream()
+        return commentRepository.findByAuthorId(userId, pageable)
                 .map(CommentMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    // ───────────────────── ПУБЛИЧНЫЕ ─────────────────────
-
-    public List<CommentDto> getEventComments(Long eventId, int from, int size) {
-        getPublishedEvent(eventId);
-        PageRequest pageable = PageRequest.of(from / size, size, Sort.by("createdOn").descending());
-        return commentRepository.findByEventId(eventId, pageable).stream()
-                .map(CommentMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    public CommentDto getComment(Long commentId) {
-        return CommentMapper.toDto(getCommentById(commentId));
+                .getContent();
     }
 
     // ───────────────────── АДМИНСКИЕ ─────────────────────
 
     @Transactional
     public void deleteCommentByAdmin(Long commentId) {
-        Comment comment = getCommentById(commentId);
-        commentRepository.delete(comment);
+        if (!commentRepository.existsById(commentId)) {
+            throw new NotFoundException("Комментарий с id=" + commentId + " не найден");
+        }
+        commentRepository.deleteById(commentId);
         log.info("Администратор удалил комментарий {}", commentId);
     }
 
     public List<CommentDto> getEventCommentsByAdmin(Long eventId, int from, int size) {
-        eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Событие с id=" + eventId + " не найдено"));
+        if (!eventRepository.existsById(eventId)) {
+            throw new NotFoundException("Событие с id=" + eventId + " не найдено");
+        }
         PageRequest pageable = PageRequest.of(from / size, size, Sort.by("createdOn").descending());
-        return commentRepository.findByEventId(eventId, pageable).stream()
+        return commentRepository.findByEventId(eventId, pageable)
                 .map(CommentMapper::toDto)
-                .collect(Collectors.toList());
+                .getContent();
     }
 
     // ───────────────────── Вспомогательные ─────────────────────
 
-    private Comment getCommentById(Long commentId) {
+    private Comment getCommentOrThrow(Long commentId) {
         return commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("Комментарий с id=" + commentId + " не найден"));
     }
 
-    private Event getPublishedEvent(Long eventId) {
+    private Event getPublishedEventOrThrow(Long eventId) {
         return eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
                 .orElseThrow(() -> new NotFoundException("Опубликованное событие с id=" + eventId + " не найдено"));
     }
 
-    private User getUserById(Long userId) {
+    private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
     }
